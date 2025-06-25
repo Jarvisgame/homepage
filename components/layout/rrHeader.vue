@@ -4,9 +4,9 @@
       <div>RRTeam</div>
     </template>
 
-    <UNavigationMenu :items="items"></UNavigationMenu>
-
     <template #right>
+      <UNavigationMenu class="pr-10" :items="items"></UNavigationMenu>
+
       <UColorModeButton/>
 
       <UTooltip text="Open on Github" :kbds="['meta', 'G']">
