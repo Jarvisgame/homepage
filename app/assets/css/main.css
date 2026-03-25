@@ -1,0 +1,56 @@
+/* assets/css/main.css */
+@import url('https://fonts.googleapis.com/css2?family=VT323&display=swap');
+
+@font-face {
+  font-family: 'Zpix';
+  src: url('/fonts/zpix.woff2') format('woff2');
+  font-weight: normal;
+  font-style: normal;
+}
+
+body {
+  background-color: #008080;
+  margin: 0;
+  font-family: 'Zpix', 'VT323', 'SimSun', monospace;
+  font-size: 13px;
+  color: #000;
+  /* 防止选中桌面时出现蓝色背景 */
+  user-select: none;
+}
+
+/* 内容区允许文本选中 */
+.window-body,
+.sunken-panel,
+.tree-view,
+.markdown-body {
+  user-select: text;
+}
+
+/* 覆盖 98.css 默认字体 */
+.window, button, input, select, textarea, menu, fieldset, legend {
+  font-family: inherit !important;
+}
+
+/* 全局链接样式 - Win98 经典蓝色 */
+a {
+  color: #0000EE;
+}
+
+a:visited {
+  color: #551A8B;
+}
+
+a:hover {
+  color: #FF0000;
+}
+
+/* 光标 - 经典等待 */
+.loading-cursor {
+  cursor: wait;
+}
+
+/* 滚动条在非 WebKit 浏览器也保持风格 */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #c0c0c0 #dfdfdf;
+}

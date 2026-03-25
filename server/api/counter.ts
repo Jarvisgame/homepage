@@ -1,0 +1,53 @@
+import { Client } from '@notionhq/client';
+
+const notion = new Client({ auth: process.env.NOTION_API_KEY });
+const DATABASE_ID = '32e545eac54280dc897bf9da70625372';
+
+export default defineEventHandler(async () => {
+  try {
+    // 查询数据库，获取访问次数记录
+    const response = await notion.dataSources.query({
+      data_source_id: DATABASE_ID,
+      page_size: 1,
+    });
+
+    if (!response.results.length) {
+      throw createError({ statusCode: 500, message: '未找到访问次数记录' });
+    }
+
+    const page = response.results[0] as any;
+    const pageId = page.id;
+
+    // 从数据库属性中读取当前计数（自动识别属性名）
+    const properties = page.properties;
+    let countPropName = '';
+    let currentCount = 0;
+
+    for (const [name, prop] of Object.entries(properties) as [string, any][]) {
+      if (prop.type === 'number') {
+        countPropName = name;
+        currentCount = prop.number || 0;
+        break;
+      }
+    }
+
+    if (!countPropName) {
+      throw createError({ statusCode: 500, message: '未找到数字类型的计数属性' });
+    }
+
+    // 计数 +1 并写回 Notion
+    const newCount = currentCount + 1;
+    await notion.pages.update({
+      page_id: pageId,
+      properties: {
+        [countPropName]: { number: newCount },
+      },
+    });
+
+    return { count: newCount };
+  } catch (e: any) {
+    if (e.statusCode) throw e;
+    console.error('访客计数错误:', e);
+    throw createError({ statusCode: 502, message: '访客计数服务异常' });
+  }
+});
