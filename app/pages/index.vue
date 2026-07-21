@@ -36,8 +36,8 @@
               </div>
             </fieldset>
             <div class="profile-actions">
-              <button class="action-btn">📩 给站长写信</button>
-              <button class="action-btn">✍️ 签写留言本</button>
+              <button>📩 给站长写信</button>
+              <button>✍️ 签写留言本</button>
             </div>
           </div>
           <div class="status-bar" v-show="!profileMinimized">
@@ -163,6 +163,27 @@
         <span class="tray-time">{{ currentTime }}</span>
       </div>
     </div>
+
+    <!-- Win98 开始菜单 -->
+    <div class="start-menu window" v-if="showStartMenu" @click.stop>
+      <div class="start-menu-sidebar">
+        <span class="start-menu-brand">Windows<span class="start-menu-version">98</span></span>
+      </div>
+      <ul class="start-menu-items">
+        <li class="start-menu-item"><span class="start-menu-icon">📄</span> 新建文档</li>
+        <li class="start-menu-item"><span class="start-menu-icon">📁</span> 打开文件</li>
+        <li class="start-menu-item"><span class="start-menu-icon">💾</span> 保存</li>
+        <li class="start-menu-separator"></li>
+        <li class="start-menu-item"><span class="start-menu-icon">⚙️</span> 设置</li>
+        <li class="start-menu-item"><span class="start-menu-icon">🔍</span> 查找</li>
+        <li class="start-menu-item"><span class="start-menu-icon">💡</span> 帮助</li>
+        <li class="start-menu-separator"></li>
+        <li class="start-menu-item start-menu-logoff"><span class="start-menu-icon">🚪</span> 注销 Administrator...</li>
+      </ul>
+    </div>
+
+    <!-- 点击开始菜单外部关闭 -->
+    <div class="start-menu-backdrop" v-if="showStartMenu" @click="showStartMenu = false"></div>
   </div>
 </template>
 
@@ -250,8 +271,8 @@ const { data: posts, pending, error } = await useFetch('/api/posts')
 .avatar {
   width: 88px;
   height: 88px;
-  border: 2px inset #fff;
-  background: #000;
+  border: 2px inset;
+  background: #ffffff;
   margin-bottom: 8px;
   image-rendering: pixelated;
 }
@@ -264,7 +285,6 @@ const { data: posts, pending, error } = await useFetch('/api/posts')
   margin: 3px 0;
   font-size: 13px;
   line-height: 1.4;
-  color: black;
 }
 
 .profile-info label {
@@ -280,8 +300,9 @@ const { data: posts, pending, error } = await useFetch('/api/posts')
   gap: 4px;
 }
 
-.action-btn {
+.profile-actions button {
   text-align: left;
+  width: 100%;
 }
 
 /* === 访客计数器 === */
@@ -315,7 +336,7 @@ const { data: posts, pending, error } = await useFetch('/api/posts')
   color: #0f0;
   font-family: "VT323", monospace;
   font-size: 20px;
-  border: 1px inset #888;
+  border: 2px inset;
 }
 
 /* === 记事本窗口 === */
@@ -366,7 +387,6 @@ const { data: posts, pending, error } = await useFetch('/api/posts')
 
 .post-title:hover {
   text-decoration: underline;
-  color: #FF0000;
 }
 
 .error-text {
@@ -399,7 +419,7 @@ const { data: posts, pending, error } = await useFetch('/api/posts')
   right: 0;
   height: 32px;
   background: #c0c0c0;
-  border-top: 2px outset #fff;
+  border-top: 2px outset;
   display: flex;
   align-items: center;
   padding: 2px 4px;
@@ -427,8 +447,8 @@ const { data: posts, pending, error } = await useFetch('/api/posts')
 .taskbar-divider {
   width: 2px;
   height: 22px;
-  border-left: 1px solid #808080;
-  border-right: 1px solid #fff;
+  border-left: 2px groove;
+  border-right: 2px groove;
   margin: 0 2px;
 }
 
@@ -461,7 +481,7 @@ const { data: posts, pending, error } = await useFetch('/api/posts')
   align-items: center;
   height: 22px;
   padding: 0 8px;
-  border: 1px inset #dfdfdf;
+  border: 2px inset;
   background: #c0c0c0;
 }
 
@@ -473,6 +493,106 @@ const { data: posts, pending, error } = await useFetch('/api/posts')
 /* === 进度条 === */
 .progress-indicator {
   margin-top: 10px;
+  border: 2px inset;
+  background: #fff;
+  height: 18px;
+  padding: 1px;
+}
+
+.progress-indicator-bar {
+  height: 100%;
+  background: #000080;
+  /* Win98 进度条经典块状动画 */
+  background-image: repeating-linear-gradient(
+    90deg,
+    #000080 0px,
+    #000080 8px,
+    #ffffff 8px,
+    #ffffff 10px
+  );
+}
+
+/* === Win98 开始菜单 === */
+.start-menu {
+  position: fixed;
+  bottom: 36px;
+  left: 4px;
+  width: 220px;
+  z-index: 10000;
+  display: flex;
+  flex-direction: row;
+  padding: 0;
+}
+
+.start-menu-sidebar {
+  width: 28px;
+  background: #808080;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding-bottom: 6px;
+}
+
+.start-menu-brand {
+  color: #c0c0c0;
+  font-weight: bold;
+  font-size: 16px;
+  writing-mode: vertical-rl;
+  transform: rotate(180deg);
+  letter-spacing: 2px;
+}
+
+.start-menu-version {
+  color: #ffffff;
+  font-size: 12px;
+}
+
+.start-menu-items {
+  flex: 1;
+  list-style: none;
+  margin: 0;
+  padding: 4px 0;
+  background: #c0c0c0;
+}
+
+.start-menu-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 12px;
+  font-size: 12px;
+  cursor: default;
+}
+
+.start-menu-item:hover {
+  background: #000080;
+  color: #ffffff;
+}
+
+.start-menu-icon {
+  width: 20px;
+  text-align: center;
+  font-size: 14px;
+}
+
+.start-menu-separator {
+  height: 1px;
+  margin: 4px 8px;
+  border-top: 1px solid #808080;
+  border-bottom: 1px solid #ffffff;
+  list-style: none;
+}
+
+.start-menu-logoff {
+  border-top: 1px solid #808080;
+  margin-top: 4px;
+  padding-top: 6px;
+}
+
+.start-menu-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 9998;
 }
 
 /* === 响应式 === */

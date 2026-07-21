@@ -13,11 +13,11 @@
       </div>
 
       <div class="window-body">
-        <menu role="menubar">
-          <li role="menuitem" tabindex="0" @click="goBack">返回上一级(B)</li>
-          <li role="menuitem" tabindex="0" aria-haspopup="true">编辑(E)</li>
-          <li role="menuitem" tabindex="0" aria-haspopup="true">查看(V)</li>
-          <li role="menuitem" tabindex="0" aria-haspopup="true">帮助(H)</li>
+        <menu role="menubar" class="wordpad-menubar">
+          <li role="menuitem" tabindex="0" @click="goBack" @keydown.enter="goBack"><u>B</u> 返回</li>
+          <li role="menuitem" tabindex="0" aria-haspopup="true"><u>E</u> 编辑</li>
+          <li role="menuitem" tabindex="0" aria-haspopup="true"><u>V</u> 查看</li>
+          <li role="menuitem" tabindex="0" aria-haspopup="true"><u>H</u> 帮助</li>
         </menu>
 
         <div class="sunken-panel content-area">
@@ -107,6 +107,17 @@ const handleLinkClick = (event) => {
   user-select: none;
 }
 
+/* === 菜单栏 === */
+.wordpad-menubar li:hover {
+  background: #000080;
+  color: #ffffff;
+}
+
+.wordpad-menubar li u {
+  text-decoration: underline;
+}
+
+/* === 内容区域 === */
 .content-area {
   min-height: 400px;
   padding: 12px;
@@ -123,11 +134,14 @@ const handleLinkClick = (event) => {
   max-width: 300px;
 }
 
-/* Markdown 样式复古化 */
+/* ============================================================
+   Markdown 渲染样式 — 模拟 WordPad 的富文本效果
+   ============================================================ */
+
 .markdown-body :deep(h1) {
   font-size: 24px;
   font-weight: bold;
-  color: black;
+  color: #000;
   border-bottom: 2px solid #808080;
   padding-bottom: 6px;
   margin-top: 10px;
@@ -137,8 +151,8 @@ const handleLinkClick = (event) => {
 .markdown-body :deep(h2) {
   font-size: 18px;
   font-weight: bold;
-  color: #222;
-  border-bottom: 1px dashed #c0c0c0;
+  color: #000;
+  border-bottom: 2px groove;
   padding-bottom: 4px;
   margin-top: 20px;
   margin-bottom: 12px;
@@ -147,7 +161,7 @@ const handleLinkClick = (event) => {
 .markdown-body :deep(h3) {
   font-size: 16px;
   font-weight: bold;
-  color: #333;
+  color: #000;
   margin-top: 15px;
   margin-bottom: 10px;
 }
@@ -159,23 +173,36 @@ const handleLinkClick = (event) => {
   margin-bottom: 12px;
 }
 
+/* 图片 — Win98 凹陷边框 */
 .markdown-body :deep(img) {
   max-width: 100%;
-  border: 2px outset #dfdfdf;
+  border: 2px inset;
 }
 
-.markdown-body :deep(pre),
+/* 行内代码 — 浅灰底黑字，像 WordPad 的等宽字体 */
 .markdown-body :deep(code) {
-  background-color: #000;
-  color: #0f0;
-  padding: 2px 4px;
+  background-color: #efefef;
+  color: #000;
+  padding: 1px 4px;
+  font-family: "Courier New", monospace;
+  font-size: 13px;
 }
 
+/* 代码块 — 白色底黑字，凹陷边框，非终端风格 */
 .markdown-body :deep(pre) {
+  background-color: #ffffff;
+  color: #000;
   padding: 10px;
-  border: 2px inset #dfdfdf;
+  border: 2px inset;
+  overflow-x: auto;
 }
 
+.markdown-body :deep(pre code) {
+  background: none;
+  padding: 0;
+}
+
+/* 链接 — 标准 Win98 蓝色，hover 仅下划线 */
 .markdown-body :deep(a) {
   color: #0000EE;
 }
@@ -185,24 +212,28 @@ const handleLinkClick = (event) => {
 }
 
 .markdown-body :deep(a:hover) {
-  color: #FF0000;
+  color: #0000EE;
+  text-decoration: underline;
 }
 
+/* 引用块 — Win98 风格灰底凹陷面板 */
 .markdown-body :deep(blockquote) {
-  border-left: 3px solid #808080;
+  border: 2px inset;
   margin: 8px 0;
-  padding: 4px 12px;
-  background: #f0f0f0;
-  color: #333;
+  padding: 8px 14px;
+  background: #ffffff;
+  color: #000;
 }
 
+/* 分割线 — 经典 3D 凹槽效果 */
 .markdown-body :deep(hr) {
   border: none;
   border-top: 1px solid #808080;
-  border-bottom: 1px solid #fff;
-  margin: 12px 0;
+  border-bottom: 1px solid #ffffff;
+  margin: 16px 0;
 }
 
+/* 列表 */
 .markdown-body :deep(ul),
 .markdown-body :deep(ol) {
   padding-left: 24px;
@@ -214,7 +245,47 @@ const handleLinkClick = (event) => {
   line-height: 1.5;
 }
 
+/* 表格 — Win98 凹陷风格 */
+.markdown-body :deep(table) {
+  border-collapse: collapse;
+  width: 100%;
+  margin-bottom: 12px;
+}
+
+.markdown-body :deep(th),
+.markdown-body :deep(td) {
+  border: 1px solid #808080;
+  padding: 4px 8px;
+  text-align: left;
+}
+
+.markdown-body :deep(th) {
+  background: #c0c0c0;
+  font-weight: bold;
+}
+
+/* 错误文本 */
 .error-text {
   color: #ff0000;
+}
+
+/* === 进度条 === */
+.progress-indicator {
+  border: 2px inset;
+  background: #fff;
+  height: 18px;
+  padding: 1px;
+}
+
+.progress-indicator-bar {
+  height: 100%;
+  background: #000080;
+  background-image: repeating-linear-gradient(
+    90deg,
+    #000080 0px,
+    #000080 8px,
+    #ffffff 8px,
+    #ffffff 10px
+  );
 }
 </style>

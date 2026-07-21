@@ -1,4 +1,5 @@
 /* assets/css/main.css */
+@import '98.css/dist/98.css';
 @import url('https://fonts.googleapis.com/css2?family=VT323&display=swap');
 
 @font-face {
@@ -7,6 +8,10 @@
   font-weight: normal;
   font-style: normal;
 }
+
+/* ============================================================
+   Win98 全局基础样式
+   ============================================================ */
 
 body {
   background-color: #008080;
@@ -31,26 +36,121 @@ body {
   font-family: inherit !important;
 }
 
-/* 全局链接样式 - Win98 经典蓝色 */
+/* ============================================================
+   选中文本颜色 — Win98 经典蓝底白字
+   ============================================================ */
+::selection {
+  background-color: #000080;
+  color: #ffffff;
+}
+::-moz-selection {
+  background-color: #000080;
+  color: #ffffff;
+}
+
+/* ============================================================
+   焦点样式 — Win98 点线框 (dotted)
+   ============================================================ */
+:focus-visible {
+  outline: 1px dotted #000000;
+  outline-offset: -1px;
+}
+
+/* ============================================================
+   全局链接样式 — Win98 规范: 蓝→紫，hover 仅下划线不变色
+   ============================================================ */
 a {
   color: #0000EE;
 }
-
 a:visited {
   color: #551A8B;
 }
-
-a:hover {
-  color: #FF0000;
+a:hover,
+a:focus {
+  color: #0000EE;
+  text-decoration: underline;
 }
 
-/* 光标 - 经典等待 */
+/* ============================================================
+   光标样式
+   ============================================================ */
 .loading-cursor {
   cursor: wait;
 }
 
-/* 滚动条在非 WebKit 浏览器也保持风格 */
+/* ============================================================
+   WebKit 滚动条 — 模拟 Win98 经典滚动条
+   ============================================================ */
+::-webkit-scrollbar {
+  width: 16px;
+  height: 16px;
+}
+::-webkit-scrollbar-track {
+  background: #dfdfdf;
+  border: 1px solid #808080;
+}
+::-webkit-scrollbar-thumb {
+  background: #c0c0c0;
+  border: 2px outset #ffffff;
+  min-height: 24px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #c0c0c0;
+}
+::-webkit-scrollbar-thumb:active {
+  border-style: inset;
+}
+::-webkit-scrollbar-button {
+  background: #c0c0c0;
+  border: 2px outset #ffffff;
+  display: block;
+  height: 16px;
+  width: 16px;
+}
+::-webkit-scrollbar-button:active {
+  border-style: inset;
+}
+/* 滚动条上下箭头 */
+::-webkit-scrollbar-button:vertical:decrement {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='8' height='8'%3E%3Cpolygon points='4,1 0,7 8,7' fill='%23000'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: center;
+}
+::-webkit-scrollbar-button:vertical:increment {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='8' height='8'%3E%3Cpolygon points='4,7 0,1 8,1' fill='%23000'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: center;
+}
+::-webkit-scrollbar-button:horizontal:decrement {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='8' height='8'%3E%3Cpolygon points='1,4 7,0 7,8' fill='%23000'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: center;
+}
+::-webkit-scrollbar-button:horizontal:increment {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='8' height='8'%3E%3Cpolygon points='7,4 1,0 1,8' fill='%23000'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: center;
+}
+::-webkit-scrollbar-corner {
+  background: #dfdfdf;
+}
+
+/* Firefox 滚动条降级方案 */
 * {
   scrollbar-width: thin;
   scrollbar-color: #c0c0c0 #dfdfdf;
+}
+
+/* ============================================================
+   按钮增强 — 确保所有 button 有 Win98 按压反馈
+   ============================================================ */
+button:active {
+  border-style: inset !important;
+}
+
+/* ============================================================
+   桌面图标网格背景（可选）
+   ============================================================ */
+.win98-desktop {
+  /* 如果用户想在桌面放图标，可使用此容器 */
 }
