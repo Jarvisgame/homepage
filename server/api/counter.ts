@@ -1,11 +1,13 @@
 import { Client } from '@notionhq/client';
 
 const notion = new Client({ auth: process.env.NOTION_API_KEY });
-const DATABASE_ID = '32e545eac54280dc897bf9da70625372';
+// Notion 数据库 ID（从数据库页面 URL 中获取，格式为带连字符的 UUID）
+// 在 v5.x SDK 中，数据库查询使用 dataSources.query() 而非 databases.query()
+const DATABASE_ID = '32e545ea-c542-80dc-897b-f9da70625372';
 
 export default defineEventHandler(async () => {
   try {
-    // 查询数据库，获取访问次数记录
+    // v5.x SDK 正确 API: notion.dataSources.query({ data_source_id })
     const response = await notion.dataSources.query({
       data_source_id: DATABASE_ID,
       page_size: 1,
@@ -18,7 +20,7 @@ export default defineEventHandler(async () => {
     const page = response.results[0] as any;
     const pageId = page.id;
 
-    // 从数据库属性中读取当前计数（自动识别属性名）
+    // 从数据库属性中读取当前计数（自动识别 number 类型的属性名）
     const properties = page.properties;
     let countPropName = '';
     let currentCount = 0;
