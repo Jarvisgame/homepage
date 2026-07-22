@@ -108,6 +108,22 @@ const handleLinkClick = (event) => {
 }
 
 /* === 菜单栏 === */
+.wordpad-menubar {
+  display: flex;
+  flex-direction: row;
+  list-style: none;
+  padding: 2px 0;
+  margin: 0;
+  background: #c0c0c0;
+  border-bottom: 1px solid #808080;
+}
+
+.wordpad-menubar li {
+  padding: 2px 8px;
+  cursor: default;
+  font-size: 12px;
+}
+
 .wordpad-menubar li:hover {
   background: #000080;
   color: #ffffff;
@@ -129,9 +145,26 @@ const handleLinkClick = (event) => {
   padding: 20px 0;
 }
 
-.loading-box .progress-indicator {
+/* === Win98 进度条 === */
+.progress-indicator {
   margin-top: 10px;
+  border: 2px inset;
+  background: #fff;
+  height: 18px;
+  padding: 1px;
   max-width: 300px;
+}
+
+.progress-indicator-bar {
+  height: 100%;
+  background: #000080;
+  background-image: repeating-linear-gradient(
+    90deg,
+    #000080 0px,
+    #000080 8px,
+    #ffffff 8px,
+    #ffffff 10px
+  );
 }
 
 /* ============================================================
