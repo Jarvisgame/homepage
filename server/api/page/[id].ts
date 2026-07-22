@@ -4,6 +4,29 @@ import { NotionToMarkdown } from 'notion-to-md';
 
 const NOTION_ID_RE = /^[0-9a-f]{8}-?[0-9a-f]{4}-?[0-9a-f]{4}-?[0-9a-f]{4}-?[0-9a-f]{12}$/i;
 
+/**
+ * 轻量重试：仅对网络类错误（ECONNRESET、fetch failed）进行重试
+ */
+async function withRetry<T>(fn: () => Promise<T>, retries = 2): Promise<T> {
+  for (let i = 0; i <= retries; i++) {
+    try {
+      return await fn();
+    } catch (e: any) {
+      if (i === retries) throw e;
+      if (
+        e.cause?.code === 'ECONNRESET' ||
+        e.code === 'ECONNRESET' ||
+        e.message?.includes('fetch failed')
+      ) {
+        await new Promise((r) => setTimeout(r, 500 * (i + 1)));
+        continue;
+      }
+      throw e;
+    }
+  }
+  throw new Error('unreachable');
+}
+
 export default defineEventHandler(async (event) => {
   const pageId = getRouterParam(event, 'id');
   if (!pageId || !NOTION_ID_RE.test(pageId)) {
@@ -14,10 +37,10 @@ export default defineEventHandler(async (event) => {
     const notion = new Client({ auth: process.env.NOTION_API_KEY });
     const n2m = new NotionToMarkdown({ notionClient: notion });
 
-    // 1. 手动获取当前页面的所有底层 Blocks 数据
-    const response = await notion.blocks.children.list({
-      block_id: pageId,
-    });
+    // 1. 手动获取当前页面的所有底层 Blocks 数据（加重试）
+    const response = await withRetry(() =>
+      notion.blocks.children.list({ block_id: pageId })
+    );
 
     // 2. 数据流拦截与篡改（Data Stream Hijacking）
     const processedBlocks = response.results.map((block: any) => {

@@ -1,6 +1,27 @@
 import { Client } from '@notionhq/client';
 
-const notion = new Client({ auth: process.env.NOTION_API_KEY });
+/**
+ * 轻量重试：仅对网络类错误（ECONNRESET、fetch failed）进行重试
+ */
+async function withRetry<T>(fn: () => Promise<T>, retries = 2): Promise<T> {
+  for (let i = 0; i <= retries; i++) {
+    try {
+      return await fn();
+    } catch (e: any) {
+      if (i === retries) throw e;
+      if (
+        e.cause?.code === 'ECONNRESET' ||
+        e.code === 'ECONNRESET' ||
+        e.message?.includes('fetch failed')
+      ) {
+        await new Promise((r) => setTimeout(r, 500 * (i + 1)));
+        continue;
+      }
+      throw e;
+    }
+  }
+  throw new Error('unreachable');
+}
 
 /**
  * 从页面 properties 中提取 number 类型的属性名和值
@@ -25,9 +46,13 @@ export default defineEventHandler(async () => {
     });
   }
 
+  const notion = new Client({ auth: process.env.NOTION_API_KEY });
+
   try {
     // 先验证集成是否有权限访问该数据库
-    await notion.databases.retrieve({ database_id: databaseId });
+    await withRetry(() =>
+      notion.databases.retrieve({ database_id: databaseId })
+    );
 
     let countPageId: string | null = null;
     let currentCount = 0;
@@ -35,17 +60,19 @@ export default defineEventHandler(async () => {
 
     // --- 主方案：用旧版 REST API 直接查询 databases/{id}/query ---
     // v5.x SDK 的 dataSources.query 不兼容 UI 创建的数据库，旧版 /databases/query 仍然可用
-    const legacyRes = await $fetch<{ results: any[] }>(
-      `https://api.notion.com/v1/databases/${databaseId}/query`,
-      {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${process.env.NOTION_API_KEY}`,
-          'Notion-Version': '2022-06-28',
-          'Content-Type': 'application/json',
-        },
-        body: { page_size: 1 },
-      }
+    const legacyRes = await withRetry(() =>
+      $fetch<{ results: any[] }>(
+        `https://api.notion.com/v1/databases/${databaseId}/query`,
+        {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${process.env.NOTION_API_KEY}`,
+            'Notion-Version': '2022-06-28',
+            'Content-Type': 'application/json',
+          },
+          body: { page_size: 1 },
+        }
+      )
     );
 
     if (legacyRes.results?.length > 0) {
@@ -59,15 +86,14 @@ export default defineEventHandler(async () => {
       }
     } else {
       // 数据库为空，创建一个新页面
-      const newPage = await notion.pages.create({
-        parent: { database_id: databaseId },
-        properties: {
-          // 尝试用常见的中/英文列名
-          ...({
+      const newPage = await withRetry(() =>
+        notion.pages.create({
+          parent: { database_id: databaseId },
+          properties: {
             Count: { number: 0 },
-          } as any),
-        },
-      } as any);
+          } as any,
+        } as any)
+      );
 
       countPageId = (newPage as any).id;
       currentCount = 0;
@@ -82,12 +108,14 @@ export default defineEventHandler(async () => {
     const newCount = currentCount + 1;
 
     if (countPropName) {
-      await notion.pages.update({
-        page_id: countPageId,
-        properties: {
-          [countPropName]: { number: newCount },
-        },
-      } as any);
+      await withRetry(() =>
+        notion.pages.update({
+          page_id: countPageId,
+          properties: {
+            [countPropName]: { number: newCount },
+          },
+        } as any)
+      );
     }
 
     return { count: newCount };
