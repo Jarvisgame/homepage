@@ -1,0 +1,23 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "homepage",
+  "compatibility_date": "2025-07-15",
+  "observability": {
+    "enabled": true
+  },
+  // 执行 `wrangler kv namespace create CACHE` 后替换为真实 ID
+  "kv_namespaces": [
+    {
+      "binding": "CACHE",
+      "id": "00000000000000000000000000000000"
+    }
+  ],
+  // 执行 `wrangler d1 create homepage-counter` 后替换为真实 ID
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "homepage-counter",
+      "database_id": "00000000-0000-0000-0000-000000000000"
+    }
+  ]
+}

@@ -210,11 +210,26 @@ onMounted(() => {
 });
 onUnmounted(() => clearInterval(clockTimer));
 
-// 访客计数
-const { data: counterData } = await useFetch('/api/counter');
+// 访客计数：客户端异步获取，避免阻塞 SSR
+const { data: counterData } = await useFetch('/api/counter', {
+  server: false,
+  lazy: true
+});
 const formattedCount = computed(() => {
   const count = counterData.value?.count ?? 0;
   return String(count).padStart(6, '0');
+});
+
+// 每个浏览器会话只上报一次访问
+onMounted(async () => {
+  if (sessionStorage.getItem('visitor-counted')) return;
+  sessionStorage.setItem('visitor-counted', '1');
+  try {
+    const res = await $fetch('/api/counter', { method: 'POST' });
+    counterData.value = res;
+  } catch {
+    // 计数失败不影响页面使用
+  }
 });
 
 // 调用我们在 server/api/posts.ts 中编写的接口，或者你实际配置的 Notion 接口
