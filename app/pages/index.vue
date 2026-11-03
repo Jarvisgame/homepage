@@ -210,23 +210,23 @@ onMounted(() => {
 });
 onUnmounted(() => clearInterval(clockTimer));
 
-// 访客计数：客户端异步获取，避免阻塞 SSR
-const { data: counterData } = await useFetch('/api/counter', {
-  server: false,
-  lazy: true
-});
+// 访客计数：仅在客户端水合完成后获取，避免 SSR/水合不一致
+const counterCount = ref(0);
 const formattedCount = computed(() => {
-  const count = counterData.value?.count ?? 0;
-  return String(count).padStart(6, '0');
+  return String(counterCount.value).padStart(6, '0');
 });
 
-// 每个浏览器会话只上报一次访问
+// 每个浏览器会话只上报一次访问；其余访问只读取当前值
 onMounted(async () => {
-  if (sessionStorage.getItem('visitor-counted')) return;
-  sessionStorage.setItem('visitor-counted', '1');
   try {
-    const res = await $fetch('/api/counter', { method: 'POST' });
-    counterData.value = res;
+    if (!sessionStorage.getItem('visitor-counted')) {
+      sessionStorage.setItem('visitor-counted', '1');
+      const res = await $fetch('/api/counter', { method: 'POST' });
+      counterCount.value = res.count;
+    } else {
+      const res = await $fetch('/api/counter');
+      counterCount.value = res.count;
+    }
   } catch {
     // 计数失败不影响页面使用
   }
