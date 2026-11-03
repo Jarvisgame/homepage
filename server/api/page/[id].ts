@@ -4,6 +4,16 @@ import { NotionToMarkdown } from 'notion-to-md';
 
 const NOTION_ID_RE = /^[0-9a-f]{8}-?[0-9a-f]{4}-?[0-9a-f]{4}-?[0-9a-f]{4}-?[0-9a-f]{12}$/i;
 
+// 把 notion-to-md 生成的 Notion 页面链接改写为站内 /p/<id>
+const NOTION_PAGE_URL_RE =
+  /\[([^\]]+)\]\((https:\/\/(?:app\.notion\.com|www\.notion\.so)\/p\/([0-9a-fA-F-]+)[^)]*)\)/g;
+
+function rewriteNotionPageLinks(markdown: string): string {
+  return markdown.replace(NOTION_PAGE_URL_RE, (match, text, _url, id) => {
+    return id ? `[${text}](/p/${id})` : match;
+  });
+}
+
 /**
  * 轻量重试：仅对网络类错误（ECONNRESET、fetch failed）进行重试
  */
@@ -57,6 +67,8 @@ export default defineEventHandler(async (event) => {
         return {
           ...block,
           type: 'paragraph',
+          // 关键：阻止 notion-to-md 继续递归抓取子页面内容
+          has_children: false,
           paragraph: {
             rich_text: [
               {
@@ -90,8 +102,11 @@ export default defineEventHandler(async (event) => {
     const mdblocks = await n2m.blocksToMarkdown(processedBlocks);
     const mdString = n2m.toMarkdownString(mdblocks);
 
+    // 4. 把 Notion 页面链接改写成站内路由，便于页面内跳转
+    const markdown = rewriteNotionPageLinks(mdString.parent || '');
+
     return {
-      markdown: mdString.parent || '该目录下没有文件...'
+      markdown: markdown || '该目录下没有文件...'
     };
   } catch (e) {
     console.error('获取页面详情错误:', e);

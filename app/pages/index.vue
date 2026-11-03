@@ -105,9 +105,26 @@
               <!-- 遍历从 posts.ts 获取的 block 列表 -->
               <li v-for="block in posts" :key="block.id">
 
-                <!-- 如果是普通段落 paragraph，直接显示文本 -->
+                <!-- 如果是普通段落 paragraph，渲染全部 rich_text；页面提及跳转到站内文章 -->
                 <template v-if="block.type === 'paragraph' && block.paragraph.rich_text.length">
-                  {{ block.paragraph.rich_text[0].plain_text }}
+                  <template v-for="(rt, i) in block.paragraph.rich_text" :key="i">
+                    <NuxtLink
+                      v-if="rt.type === 'mention' && rt.mention?.type === 'page'"
+                      :to="`/p/${rt.mention.page.id}`"
+                      class="post-title"
+                    >
+                      {{ rt.plain_text }}
+                    </NuxtLink>
+                    <a
+                      v-else-if="rt.href"
+                      :href="rt.href"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      {{ rt.plain_text }}
+                    </a>
+                    <template v-else>{{ rt.plain_text }}</template>
+                  </template>
                 </template>
 
                 <!-- 如果是子页面 child_page，显示为可展开的文件夹 -->
