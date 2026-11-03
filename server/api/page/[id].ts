@@ -34,7 +34,11 @@ export default defineEventHandler(async (event) => {
   }
 
   try {
-    const notion = new Client({ auth: process.env.NOTION_API_KEY });
+    const notion = new Client({
+      auth: process.env.NOTION_API_KEY,
+      // Workers 运行时要求 fetch 绑定到 globalThis，否则会抛 Illegal invocation
+      fetch: globalThis.fetch.bind(globalThis),
+    });
     const n2m = new NotionToMarkdown({ notionClient: notion });
 
     // 1. 手动获取当前页面的所有底层 Blocks 数据（加重试）

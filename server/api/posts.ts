@@ -28,7 +28,11 @@ export default defineEventHandler(async () => {
     throw createError({ statusCode: 500, message: '服务器配置错误：缺少 NOTION_PAGE_ID' });
   }
 
-  const notion = new Client({ auth: process.env.NOTION_API_KEY });
+  const notion = new Client({
+    auth: process.env.NOTION_API_KEY,
+    // Workers 运行时要求 fetch 绑定到 globalThis，否则会抛 Illegal invocation
+    fetch: globalThis.fetch.bind(globalThis),
+  });
 
   try {
     const response = await withRetry(() =>

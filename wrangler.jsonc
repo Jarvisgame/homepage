@@ -1,0 +1,23 @@
+{
+	"$schema": "node_modules/wrangler/config-schema.json",
+	"name": "homepage",
+	"compatibility_date": "2025-07-15",
+	"observability": {
+		"enabled": true
+	},
+	// 执行 `wrangler kv namespace create CACHE` 后替换为真实 ID
+	"kv_namespaces": [
+		{
+			"binding": "CACHE",
+			"id": "709dd1f465594514b03a01888d161e2c"
+		}
+	],
+	// D1 计数器数据库
+	"d1_databases": [
+		{
+			"binding": "DB",
+			"database_name": "homepage-counter",
+			"database_id": "549881bb-1c2e-4b47-ade5-9bfda0b1a5d6"
+		}
+	]
+}
