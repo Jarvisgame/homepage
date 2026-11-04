@@ -21,7 +21,7 @@
         </menu>
 
         <div class="sunken-panel content-area">
-          <div v-if="pending && !pageData" class="loading-box">
+          <div v-if="mounted && pending && !pageData" class="loading-box">
             <p>正在解压文件，请稍候...</p>
             <div class="progress-indicator">
               <div class="progress-indicator-bar" style="width: 45%"></div>
@@ -43,7 +43,7 @@
 </template>
 
 <script setup>
-import { computed, nextTick } from 'vue';
+import { computed, nextTick, onMounted, ref } from 'vue';
 import { marked } from 'marked';
 import { useRoute, useRouter } from 'vue-router';
 
@@ -60,6 +60,12 @@ const route = useRoute();
 const router = useRouter();
 
 const { data: pageData, pending } = await useFetch(`/api/page/${route.params.id}`);
+
+// 仅客户端挂载后再显示加载框，避免 SSR 水合不匹配
+const mounted = ref(false);
+onMounted(() => {
+  mounted.value = true;
+});
 
 const renderedHtml = computed(() => {
   if (pageData.value?.markdown) {
