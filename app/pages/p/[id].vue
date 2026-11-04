@@ -59,11 +59,7 @@ marked.use({
 const route = useRoute();
 const router = useRouter();
 
-const { data: pageData, pending } = await useAsyncData(
-  'article',
-  () => $fetch(`/api/page/${route.params.id}`),
-  { watch: [() => route.params.id] }
-);
+const { data: pageData, pending } = await useFetch(`/api/page/${route.params.id}`);
 
 const renderedHtml = computed(() => {
   if (pageData.value?.markdown) {
