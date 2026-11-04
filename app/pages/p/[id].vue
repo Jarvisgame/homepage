@@ -7,7 +7,7 @@
         <div class="title-bar-text">WordPad.exe - 正在读取 {{ route.params.id }}</div>
         <div class="title-bar-controls">
           <button aria-label="Minimize"></button>
-          <button aria-label="Maximize"></button>
+          <button aria-label="Maximize" @click="openInNewWindow"></button>
           <button aria-label="Close" @click="goBack"></button>
         </div>
       </div>
@@ -21,7 +21,7 @@
         </menu>
 
         <div class="sunken-panel content-area">
-          <div v-if="pending" class="loading-box">
+          <div v-if="pending && !pageData" class="loading-box">
             <p>正在解压文件，请稍候...</p>
             <div class="progress-indicator">
               <div class="progress-indicator-bar" style="width: 45%"></div>
@@ -43,7 +43,7 @@
 </template>
 
 <script setup>
-import { computed } from 'vue';
+import { computed, nextTick } from 'vue';
 import { marked } from 'marked';
 import { useRoute, useRouter } from 'vue-router';
 
@@ -59,7 +59,11 @@ marked.use({
 const route = useRoute();
 const router = useRouter();
 
-const { data: pageData, pending } = await useFetch(`/api/page/${route.params.id}`);
+const { data: pageData, pending } = await useAsyncData(
+  'article',
+  () => $fetch(`/api/page/${route.params.id}`),
+  { watch: [() => route.params.id] }
+);
 
 const renderedHtml = computed(() => {
   if (pageData.value?.markdown) {
@@ -72,22 +76,21 @@ const goBack = () => {
   router.push('/');
 };
 
-// ✨ 核心修改：拦截内部链接的点击事件
-const handleLinkClick = (event) => {
-  // 向上寻找被点击的最近的 <a> 标签
+// 点击 Maximize：在新窗口打开当前文章
+const openInNewWindow = () => {
+  window.open(route.fullPath, '_blank', 'noopener,noreferrer,width=1000,height=760');
+};
+
+// 拦截文章内的站内链接，在当前 WordPad 窗口内直接切换文章
+const handleLinkClick = async (event) => {
   const target = event.target.closest('a');
-  
-  // 如果点到了 <a> 标签，且 href 包含了我们设定的内部路由 "/p/"
   if (target && target.getAttribute('href')?.startsWith('/p/')) {
-    event.preventDefault(); // 阻止浏览器默认的整体刷新跳转
-    
+    event.preventDefault();
     const targetUrl = target.getAttribute('href');
-
-    // 方案 A：在当前窗口直接跳转去新的子页面（如需使用，解开下方注释）
-    // router.push(targetUrl);
-
-    // 方案 B（推荐）：使用 JS 在新标签页打开，模拟"打开新窗口"的复古感
-    window.open(targetUrl, '_blank');
+    await router.push(targetUrl);
+    await nextTick();
+    const contentArea = document.querySelector('.content-area');
+    if (contentArea) contentArea.scrollTop = 0;
   }
 };
 </script>
