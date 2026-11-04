@@ -76,7 +76,7 @@
       <main class="content">
         <div class="window" v-if="!notepadClosed">
           <div class="title-bar" @dblclick="notepadMinimized = !notepadMinimized">
-            <div class="title-bar-text">Notion_Update_Log.txt - 记事本</div>
+            <div class="title-bar-text">{{ notepadTitle }}</div>
             <div class="title-bar-controls">
               <button aria-label="Minimize" @click="notepadMinimized = true"></button>
               <button aria-label="Maximize" @click="notepadMinimized = false"></button>
@@ -91,55 +91,95 @@
               <li role="menuitem" tabindex="0" aria-haspopup="true">帮助(H)</li>
             </menu>
 
-            <!-- 使用 Notion API 数据 -->
-            <div class="sunken-panel notepad-content" v-if="pending">
-              <p>正在拨号连接服务器获取数据...</p>
-              <div class="progress-indicator">
-                <div class="progress-indicator-bar" style="width: 60%"></div>
+            <!-- 内嵌文章阅读视图：仍然在当前记事本窗口中渲染 -->
+            <div v-if="activePageId" class="sunken-panel notepad-content article-view">
+              <div class="article-toolbar">
+                <button type="button" @click="goBackFromArticle">
+                  ← {{ articleHistory.length ? '返回上一页' : '返回列表' }}
+                </button>
+                <span class="article-title">{{ activePageTitle || activePageId }}</span>
+              </div>
+              <div ref="articleScrollRef" class="article-scroll">
+                <div v-if="articlePending" class="article-loading">
+                  <p>正在解压文件，请稍候...</p>
+                  <div class="progress-indicator">
+                    <div class="progress-indicator-bar" style="width: 45%"></div>
+                  </div>
+                </div>
+                <div v-else-if="articleError" class="error-text">{{ articleError }}</div>
+                <article
+                  v-else
+                  class="markdown-body"
+                  v-html="articleHtml"
+                  @click="handleArticleLinkClick"
+                ></article>
               </div>
             </div>
-            <div class="sunken-panel notepad-content" v-else-if="error">
-              <p class="error-text">系统致命错误：无法连接到 Notion API！</p>
-            </div>
-            <ul class="tree-view notepad-content" v-else>
-              <!-- 遍历从 posts.ts 获取的 block 列表 -->
-              <li v-for="block in posts" :key="block.id">
 
-                <!-- 如果是普通段落 paragraph，渲染全部 rich_text；页面提及跳转到站内文章 -->
-                <template v-if="block.type === 'paragraph' && block.paragraph.rich_text.length">
-                  <template v-for="(rt, i) in block.paragraph.rich_text" :key="i">
-                    <NuxtLink
-                      v-if="rt.type === 'mention' && rt.mention?.type === 'page'"
-                      :to="`/p/${rt.mention.page.id}`"
-                      class="post-title"
-                    >
-                      {{ rt.plain_text }}
-                    </NuxtLink>
-                    <a
-                      v-else-if="rt.href"
-                      :href="rt.href"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                    >
-                      {{ rt.plain_text }}
-                    </a>
-                    <template v-else>{{ rt.plain_text }}</template>
+            <!-- 使用 Notion API 数据 -->
+            <div v-if="!activePageId">
+              <div class="sunken-panel notepad-content" v-if="mounted && pending">
+                <p>正在拨号连接服务器获取数据...</p>
+                <div class="progress-indicator">
+                  <div class="progress-indicator-bar" style="width: 60%"></div>
+                </div>
+              </div>
+              <div class="sunken-panel notepad-content" v-else-if="mounted && error">
+                <p class="error-text">系统致命错误：无法连接到 Notion API！</p>
+              </div>
+              <ul class="tree-view notepad-content" v-else>
+                <!-- 遍历从 posts.ts 获取的 block 列表 -->
+                <li v-for="block in posts" :key="block.id">
+
+                  <!-- 如果是普通段落 paragraph，渲染全部 rich_text；页面提及在当前窗口中打开 -->
+                  <template v-if="block.type === 'paragraph' && block.paragraph.rich_text.length">
+                    <template v-for="(rt, i) in block.paragraph.rich_text" :key="i">
+                      <a
+                        v-if="rt.type === 'mention' && rt.mention?.type === 'page'"
+                        href="#"
+                        class="post-title"
+                        @click.prevent="openPage(rt.mention.page.id, rt.plain_text)"
+                      >
+                        {{ rt.plain_text }}
+                      </a>
+                      <a
+                        v-else-if="rt.href && rt.href.startsWith('/p/')"
+                        href="#"
+                        class="post-title"
+                        @click.prevent="openPage(rt.href.slice(3), rt.plain_text)"
+                      >
+                        {{ rt.plain_text }}
+                      </a>
+                      <a
+                        v-else-if="rt.href"
+                        :href="rt.href"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                      >
+                        {{ rt.plain_text }}
+                      </a>
+                      <template v-else>{{ rt.plain_text }}</template>
+                    </template>
                   </template>
-                </template>
 
-                <!-- 如果是子页面 child_page，显示为可展开的文件夹 -->
-                <template v-else-if="block.type === 'child_page'">
-                  <NuxtLink :to="`/p/${block.id}`" class="post-title">
-                    {{ block.child_page.title }}.txt
-                  </NuxtLink>
-                </template>
+                  <!-- 如果是子页面 child_page，在当前窗口中打开 -->
+                  <template v-else-if="block.type === 'child_page'">
+                    <a
+                      href="#"
+                      class="post-title"
+                      @click.prevent="openPage(block.id, `${block.child_page.title || '未命名'}.txt`)"
+                    >
+                      {{ block.child_page.title }}.txt
+                    </a>
+                  </template>
 
-              </li>
-            </ul>
+                </li>
+              </ul>
+            </div>
           </div>
           <div class="status-bar" v-show="!notepadMinimized">
-            <div class="status-bar-field">{{ posts?.length ?? 0 }} 个对象</div>
-            <div class="status-bar-field">Notion API</div>
+            <div class="status-bar-field">{{ activePageId ? '只读' : `${posts?.length ?? 0} 个对象` }}</div>
+            <div class="status-bar-field">{{ activePageId ? activePageId : 'Notion API' }}</div>
             <div class="status-bar-field">UTF-8</div>
           </div>
         </div>
@@ -205,7 +245,17 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onUnmounted } from 'vue';
+import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue';
+import { marked } from 'marked';
+
+// 防止 Markdown 中嵌入的原始 HTML 导致 XSS
+marked.use({
+  renderer: {
+    html({ text }) {
+      return text.replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    }
+  }
+});
 
 // 窗口状态
 const profileMinimized = ref(false);
@@ -213,6 +263,19 @@ const profileClosed = ref(false);
 const notepadMinimized = ref(false);
 const notepadClosed = ref(false);
 const showStartMenu = ref(false);
+
+// 记事本内嵌文章阅读状态
+const activePageId = ref(null);
+const activePageTitle = ref('');
+const activePage = ref(null);
+const articlePending = ref(false);
+const articleError = ref(null);
+const articleHistory = ref([]);
+const articleScrollRef = ref(null);
+let articleRequestId = 0;
+
+// 仅客户端挂载后再显示列表加载框，避免 SSR 水合不匹配
+const mounted = ref(false);
 
 // 任务栏时钟
 const currentTime = ref('');
@@ -222,6 +285,7 @@ const updateClock = () => {
   currentTime.value = now.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' });
 };
 onMounted(() => {
+  mounted.value = true;
   updateClock();
   clockTimer = setInterval(updateClock, 60000);
 });
@@ -250,7 +314,92 @@ onMounted(async () => {
 });
 
 // 调用我们在 server/api/posts.ts 中编写的接口，或者你实际配置的 Notion 接口
-const { data: posts, pending, error } = await useFetch('/api/posts')
+const { data: posts, pending, error } = await useFetch('/api/posts');
+
+// 记事本标题：阅读文章时切换为 WordPad 风格
+const notepadTitle = computed(() => {
+  if (!activePageId.value) return 'Notion_Update_Log.txt - 记事本';
+  return `WordPad.exe - 正在读取 ${activePageTitle.value || activePageId.value}`;
+});
+
+const articleHtml = computed(() => {
+  if (activePage.value?.markdown) {
+    return marked.parse(activePage.value.markdown);
+  }
+  return '';
+});
+
+const scrollArticleToTop = async () => {
+  await nextTick();
+  if (articleScrollRef.value) {
+    articleScrollRef.value.scrollTop = 0;
+  }
+};
+
+const loadArticle = async (id, title = '') => {
+  const requestId = ++articleRequestId;
+  activePageId.value = id;
+  activePageTitle.value = title || id;
+  activePage.value = null;
+  articleError.value = null;
+  articlePending.value = true;
+  await scrollArticleToTop();
+
+  try {
+    const data = await $fetch(`/api/page/${id}`);
+    if (requestId !== articleRequestId) return;
+    if (data?.error) {
+      articleError.value = data.error;
+    } else {
+      activePage.value = data;
+    }
+  } catch (e) {
+    if (requestId !== articleRequestId) return;
+    articleError.value = e?.data?.message || '磁盘读取错误（Read Error）';
+  } finally {
+    if (requestId === articleRequestId) {
+      articlePending.value = false;
+    }
+  }
+};
+
+// 从列表打开文章：清空阅读历史
+const openPage = (id, title = '') => {
+  articleHistory.value = [];
+  loadArticle(id, title);
+};
+
+const closeArticle = () => {
+  articleRequestId++;
+  activePageId.value = null;
+  activePageTitle.value = '';
+  activePage.value = null;
+  articleError.value = null;
+  articlePending.value = false;
+  articleHistory.value = [];
+};
+
+const goBackFromArticle = () => {
+  if (articleHistory.value.length) {
+    const previous = articleHistory.value.pop();
+    loadArticle(previous.id, previous.title);
+  } else {
+    closeArticle();
+  }
+};
+
+// 文章内部的站内链接也在当前记事本窗口中打开
+const handleArticleLinkClick = (event) => {
+  const target = event.target.closest('a');
+  const href = target?.getAttribute('href');
+  if (!href || !href.startsWith('/p/')) return;
+
+  event.preventDefault();
+  if (activePageId.value) {
+    articleHistory.value.push({ id: activePageId.value, title: activePageTitle.value });
+  }
+  loadArticle(href.slice(3), target.textContent?.trim() || href.slice(3));
+};
 </script>
 
 <style scoped>
@@ -404,6 +553,44 @@ const { data: posts, pending, error } = await useFetch('/api/posts')
   margin-top: 4px;
 }
 
+/* === 记事本内嵌文章 === */
+.article-view {
+  display: flex;
+  flex-direction: column;
+  min-height: 300px;
+  max-height: 70vh;
+  padding: 0;
+}
+
+.article-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+  padding: 4px 6px;
+  background: #c0c0c0;
+  border-bottom: 1px solid #808080;
+}
+
+.article-title {
+  font-size: 12px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.article-scroll {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 12px;
+  background: #ffffff;
+}
+
+.article-loading {
+  padding: 12px 0;
+}
+
 .tree-view {
   background-color: #ffffff;
 }
@@ -419,6 +606,125 @@ const { data: posts, pending, error } = await useFetch('/api/posts')
 
 .post-title:hover {
   text-decoration: underline;
+}
+
+/* === 内嵌文章 Markdown 样式 === */
+.markdown-body :deep(h1) {
+  font-size: 24px;
+  font-weight: bold;
+  color: #000;
+  border-bottom: 2px solid #808080;
+  padding-bottom: 6px;
+  margin-top: 10px;
+  margin-bottom: 15px;
+}
+
+.markdown-body :deep(h2) {
+  font-size: 18px;
+  font-weight: bold;
+  color: #000;
+  border-bottom: 2px groove;
+  padding-bottom: 4px;
+  margin-top: 20px;
+  margin-bottom: 12px;
+}
+
+.markdown-body :deep(h3) {
+  font-size: 16px;
+  font-weight: bold;
+  color: #000;
+  margin-top: 15px;
+  margin-bottom: 10px;
+}
+
+.markdown-body :deep(p) {
+  font-size: 14px;
+  line-height: 1.6;
+  color: #000;
+  margin-bottom: 12px;
+}
+
+.markdown-body :deep(img) {
+  max-width: 100%;
+  border: 2px inset;
+}
+
+.markdown-body :deep(code) {
+  background-color: #efefef;
+  color: #000;
+  padding: 1px 4px;
+  font-family: "Courier New", monospace;
+  font-size: 13px;
+}
+
+.markdown-body :deep(pre) {
+  background-color: #ffffff;
+  color: #000;
+  padding: 10px;
+  border: 2px inset;
+  overflow-x: auto;
+}
+
+.markdown-body :deep(pre code) {
+  background: none;
+  padding: 0;
+}
+
+.markdown-body :deep(a) {
+  color: #0000EE;
+}
+
+.markdown-body :deep(a:visited) {
+  color: #551A8B;
+}
+
+.markdown-body :deep(a:hover) {
+  color: #0000EE;
+  text-decoration: underline;
+}
+
+.markdown-body :deep(blockquote) {
+  border: 2px inset;
+  margin: 8px 0;
+  padding: 8px 14px;
+  background: #ffffff;
+  color: #000;
+}
+
+.markdown-body :deep(hr) {
+  border: none;
+  border-top: 1px solid #808080;
+  border-bottom: 1px solid #ffffff;
+  margin: 16px 0;
+}
+
+.markdown-body :deep(ul),
+.markdown-body :deep(ol) {
+  padding-left: 24px;
+  margin-bottom: 12px;
+}
+
+.markdown-body :deep(li) {
+  margin-bottom: 4px;
+  line-height: 1.5;
+}
+
+.markdown-body :deep(table) {
+  border-collapse: collapse;
+  width: 100%;
+  margin-bottom: 12px;
+}
+
+.markdown-body :deep(th),
+.markdown-body :deep(td) {
+  border: 1px solid #808080;
+  padding: 4px 8px;
+  text-align: left;
+}
+
+.markdown-body :deep(th) {
+  background: #c0c0c0;
+  font-weight: bold;
 }
 
 .error-text {
