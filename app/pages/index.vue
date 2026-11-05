@@ -114,8 +114,17 @@
               ></article>
             </div>
 
-            <!-- 使用 Notion API 数据 -->
-            <div v-if="!activePageId">
+            <!-- 根内容：与子页面一致的“肥狗档案库”Markdown -->
+            <div v-else-if="hasHomeArticle" class="sunken-panel content-area">
+              <article
+                class="markdown-body"
+                v-html="homeHtml"
+                @click="handleArticleLinkClick"
+              ></article>
+            </div>
+
+            <!-- 回退：原始 Notion 列表 -->
+            <div v-else>
               <div class="sunken-panel notepad-content" v-if="mounted && pending">
                 <p>正在拨号连接服务器获取数据...</p>
                 <div class="progress-indicator">
@@ -176,9 +185,9 @@
             </div>
           </div>
           <div class="status-bar" v-show="!notepadMinimized">
-            <div class="status-bar-field">{{ activePageId ? '就绪' : `${posts?.length ?? 0} 个对象` }}</div>
-            <div class="status-bar-field">{{ activePageId ? activePageId : 'Notion API' }}</div>
-            <div v-if="!activePageId" class="status-bar-field">UTF-8</div>
+            <div class="status-bar-field">{{ activePageId || hasHomeArticle ? '就绪' : `${posts?.length ?? 0} 个对象` }}</div>
+            <div class="status-bar-field">{{ activePageId ? activePageId : (hasHomeArticle ? homePageId : 'Notion API') }}</div>
+            <div v-if="!activePageId && !hasHomeArticle" class="status-bar-field">UTF-8</div>
           </div>
         </div>
       </main>
@@ -314,9 +323,48 @@ onMounted(async () => {
 // 调用我们在 server/api/posts.ts 中编写的接口，或者你实际配置的 Notion 接口
 const { data: posts, pending, error } = await useFetch('/api/posts');
 
-// 记事本标题：阅读文章时切换为 WordPad 风格
+// landing 页根内容：读取顶层页面中的“肥狗档案库”正文
+const HOME_PAGE_TITLE = '肥狗档案库';
+
+const homePageId = computed(() => {
+  for (const block of posts.value || []) {
+    if (block.type === 'child_page' && block.child_page?.title === HOME_PAGE_TITLE) {
+      return block.id;
+    }
+    if (block.type !== 'paragraph') continue;
+
+    for (const rt of block.paragraph?.rich_text || []) {
+      if (rt.plain_text?.trim() !== HOME_PAGE_TITLE) continue;
+      if (rt.type === 'mention' && rt.mention?.type === 'page') {
+        return rt.mention.page.id;
+      }
+      if (rt.href?.startsWith('/p/')) {
+        return rt.href.slice(3);
+      }
+    }
+  }
+  return null;
+});
+
+const { data: homePage } = await useAsyncData(
+  'home-archive',
+  () => homePageId.value ? $fetch(`/api/page/${homePageId.value}`) : Promise.resolve(null)
+);
+
+const hasHomeArticle = computed(() => !!homePage.value?.markdown);
+
+const homeHtml = computed(() => {
+  if (homePage.value?.markdown) {
+    return marked.parse(homePage.value.markdown);
+  }
+  return '';
+});
+
+// 记事本标题：根内容为档案库正文，阅读文章时切换为 WordPad 风格
 const notepadTitle = computed(() => {
-  if (!activePageId.value) return 'Notion_Update_Log.txt - 记事本';
+  if (!activePageId.value) {
+    return hasHomeArticle.value ? '肥狗档案库.txt - 记事本' : 'Notion_Update_Log.txt - 记事本';
+  }
   return `WordPad.exe - 正在读取 ${activePageTitle.value || activePageId.value}`;
 });
 
