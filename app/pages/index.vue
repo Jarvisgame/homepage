@@ -607,6 +607,10 @@ const handleArticleLinkClick = (event) => {
 }
 
 /* === 内嵌文章 Markdown 样式 === */
+.markdown-body {
+  line-height: normal;
+}
+
 .markdown-body :deep(h1) {
   font-size: 24px;
   font-weight: bold;
