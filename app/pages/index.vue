@@ -84,36 +84,34 @@
             </div>
           </div>
           <div class="window-body content-body" v-show="!notepadMinimized">
-            <menu role="menubar" class="notepad-menubar">
+            <menu v-if="!activePageId" role="menubar" class="notepad-menubar">
               <li role="menuitem" tabindex="0" aria-haspopup="true">文件(F)</li>
               <li role="menuitem" tabindex="0" aria-haspopup="true">编辑(E)</li>
               <li role="menuitem" tabindex="0" aria-haspopup="true">查看(V)</li>
               <li role="menuitem" tabindex="0" aria-haspopup="true">帮助(H)</li>
             </menu>
+            <menu v-else role="menubar" class="wordpad-menubar">
+              <li role="menuitem" tabindex="0" @click="goBackFromArticle" @keydown.enter="goBackFromArticle"><u>B</u> 返回</li>
+              <li role="menuitem" tabindex="0" aria-haspopup="true"><u>E</u> 编辑</li>
+              <li role="menuitem" tabindex="0" aria-haspopup="true"><u>V</u> 查看</li>
+              <li role="menuitem" tabindex="0" aria-haspopup="true"><u>H</u> 帮助</li>
+            </menu>
 
-            <!-- 内嵌文章阅读视图：仍然在当前记事本窗口中渲染 -->
-            <div v-if="activePageId" class="sunken-panel notepad-content article-view">
-              <div class="article-toolbar">
-                <button type="button" @click="goBackFromArticle">
-                  ← {{ articleHistory.length ? '返回上一页' : '返回列表' }}
-                </button>
-                <span class="article-title">{{ activePageTitle || activePageId }}</span>
-              </div>
-              <div ref="articleScrollRef" class="article-scroll">
-                <div v-if="articlePending" class="article-loading">
-                  <p>正在解压文件，请稍候...</p>
-                  <div class="progress-indicator">
-                    <div class="progress-indicator-bar" style="width: 45%"></div>
-                  </div>
+            <!-- 内嵌文章阅读视图：与 /p/:id 子页面保持一致的 WordPad 风格 -->
+            <div v-if="activePageId" ref="articleScrollRef" class="sunken-panel content-area">
+              <div v-if="articlePending" class="loading-box">
+                <p>正在解压文件，请稍候...</p>
+                <div class="progress-indicator">
+                  <div class="progress-indicator-bar" style="width: 45%"></div>
                 </div>
-                <div v-else-if="articleError" class="error-text">{{ articleError }}</div>
-                <article
-                  v-else
-                  class="markdown-body"
-                  v-html="articleHtml"
-                  @click="handleArticleLinkClick"
-                ></article>
               </div>
+              <div v-else-if="articleError" class="error-text">{{ articleError }}</div>
+              <article
+                v-else
+                class="markdown-body"
+                v-html="articleHtml"
+                @click="handleArticleLinkClick"
+              ></article>
             </div>
 
             <!-- 使用 Notion API 数据 -->
@@ -178,9 +176,9 @@
             </div>
           </div>
           <div class="status-bar" v-show="!notepadMinimized">
-            <div class="status-bar-field">{{ activePageId ? '只读' : `${posts?.length ?? 0} 个对象` }}</div>
+            <div class="status-bar-field">{{ activePageId ? '就绪' : `${posts?.length ?? 0} 个对象` }}</div>
             <div class="status-bar-field">{{ activePageId ? activePageId : 'Notion API' }}</div>
-            <div class="status-bar-field">UTF-8</div>
+            <div v-if="!activePageId" class="status-bar-field">UTF-8</div>
           </div>
         </div>
       </main>
@@ -553,42 +551,42 @@ const handleArticleLinkClick = (event) => {
   margin-top: 4px;
 }
 
-/* === 记事本内嵌文章 === */
-.article-view {
-  display: flex;
-  flex-direction: column;
-  min-height: 300px;
+/* === 记事本内嵌文章（与 /p/:id 子页面一致） === */
+.content-area {
+  min-height: 400px;
+  padding: 12px;
+  overflow-y: auto;
   max-height: 70vh;
-  padding: 0;
 }
 
-.article-toolbar {
+.loading-box {
+  padding: 20px 0;
+}
+
+/* === WordPad 菜单栏 === */
+.wordpad-menubar {
   display: flex;
-  align-items: center;
-  gap: 8px;
-  flex-shrink: 0;
-  padding: 4px 6px;
+  flex-direction: row;
+  list-style: none;
+  padding: 2px 0;
+  margin: 0;
   background: #c0c0c0;
   border-bottom: 1px solid #808080;
 }
 
-.article-title {
+.wordpad-menubar li {
+  padding: 2px 8px;
+  cursor: default;
   font-size: 12px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
 }
 
-.article-scroll {
-  flex: 1;
-  min-height: 0;
-  overflow-y: auto;
-  padding: 12px;
-  background: #ffffff;
+.wordpad-menubar li:hover {
+  background: #000080;
+  color: #ffffff;
 }
 
-.article-loading {
-  padding: 12px 0;
+.wordpad-menubar li u {
+  text-decoration: underline;
 }
 
 .tree-view {
